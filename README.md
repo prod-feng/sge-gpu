@@ -1,6 +1,5 @@
 # sge-gpu
-This is a package which is designed to add GPU scheduling capability to GE2011.11p1(not capatable to other versions).
-To let it work, you need to download the patched source files, and recompile your GE from source.
+This is a package which is designed to add GPU scheduling capability to GE2011.11p1(not applicable to other versions).
 
 Secondly, you need to set a comsumable, named "ngpus". And assign value of it to each node.
 

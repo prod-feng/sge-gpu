@@ -16,7 +16,7 @@ This also works for parallel jobs.
 
 Here, "-l ngpus=1" request 1 GPU for 1 process.
 
-It supports multiple GPU scheduling on one node as well. For example, if node001 has 4 GPUs installed. JobA uses GPU0, JobB uses GPU2, and then JobC requestes 2 GPUs, the patched SGE can dispatch GPU1 and GPU3 to JobC, and set the environment for the job on node001 as:
+It supports multiple GPU scheduling on nodes as well. For example, if node001 has 4 GPUs installed. JobA uses GPU0, JobB uses GPU2, and then JobC requestes 2 GPUs, the patched SGE can dispatch GPU1 and GPU3 to JobC, and set the environment for the job on node001 as:
 
 CUDA_VISIBLE_DEVICES=1,3
 

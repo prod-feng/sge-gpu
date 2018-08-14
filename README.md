@@ -25,3 +25,5 @@ For non-GPU jobs, CUDA_VISIBLE_DEVICES is set to be empty.
 With this patch, you do not need wrapper or load sensor anymore to schedule multiple GPU jobs.
 
 Check the link for downloading the sourse code: http://sourceforge.net/projects/ge-gpu/?source=directory
+
+Update: some bug fixes. April, 2018.

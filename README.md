@@ -1,4 +1,7 @@
 # sge-gpu
+
+Update: some bug fixes. April, 2018.
+
 This is a package which is designed to enable GPU scheduling capability to GE2011.11p1(not applicable to other versions yet). With this patch, SGE can support GPU without any external Wraper tools.
 
 Patch to Son of Grid Engine 8.18 is available too in the following link.
@@ -26,4 +29,4 @@ With this patch, you do not need wrapper or load sensor anymore to schedule mult
 
 Check the link for downloading the sourse code: http://sourceforge.net/projects/ge-gpu/?source=directory
 
-Update: some bug fixes. April, 2018.
+

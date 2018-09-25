@@ -18,6 +18,16 @@ First, recompile and rebuild the source code. Second, you need to set a consumab
 
 >
 
+
+and,
+
+> qconf -se node1
+
+> ...
+
+> complex_values        slots=12,ngpus=2,...
+
+
 When you submit a GPU job, you need to run the command:
 
 >qsub -l ngpus=1 ...

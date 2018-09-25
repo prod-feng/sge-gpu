@@ -6,7 +6,17 @@ This is a package which is designed to enable GPU scheduling capability to GE201
 
 Patch to Son of Grid Engine 8.18 is available too in the following link.
 
-First, recompile and rebuild the source code. Second, you need to set a consumable, named "ngpus"(hard coded in the patched files). And assign value of it to each node.
+First, recompile and rebuild the source code. Second, you need to set a consumable, named "ngpus"(hard coded in the patched files). And assign value of it to each node. Like the following:
+
+>$ qconf -sc
+
+>#name               shortcut   type        relop requestable consumable default  urgency 
+
+> ...
+
+> ngpus               gpu        INT         <=    YES         YES        0        5000
+
+>
 
 When you submit a GPU job, you need to run the command:
 

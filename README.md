@@ -1,6 +1,18 @@
 # sge-gpu
 
+Update: Oct., 2018 
+
+Add patched_files_ge2011.11.p1.0.1.tar.gz .
+
+Fix a bug to support GPU array jobs properly. Only for GE2011.p1 now.
+
+NO Guarantee!
+
+======================================
+
 Update: some bug fixes. April, 2018.
+
+======================================
 
 This is a package which is designed to enable GPU scheduling capability to GE2011.11p1(not applicable to other versions yet). With this patch, SGE can support GPU without any external Wraper tools.
 

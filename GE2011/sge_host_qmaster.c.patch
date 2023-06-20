@@ -1,0 +1,29 @@
+--- /home/feng/SGE/GE2011.11p1/source/daemons/qmaster/sge_host_qmaster.c	2012-05-23 15:04:39.000000000 -0400
++++ source/sge_host_qmaster.c	2018-10-12 11:34:36.000000000 -0400
+@@ -1554,7 +1554,7 @@
+          lList *master_centry_list = *object_type_get_master_list(SGE_TYPE_CENTRY);
+ 
+          lSetList(tmp_elem, EH_resource_utilization, NULL);
+-         debit_host_consumable(NULL, tmp_elem, master_centry_list, 0, true);
++         debit_host_consumable(NULL, tmp_elem, master_centry_list, 0, true, 0);/*add job_task_id=0*/
+          for_each (jep, *(object_type_get_master_list(SGE_TYPE_JOB))) {
+             lListElem *jatep = NULL;
+ 
+@@ -1563,6 +1563,8 @@
+                int slots;
+                bool is_master_task = false;
+                const void *iterator = NULL;
++               /*add ja_task_id*/
++               u_long32 ja_task_id = lGetUlong(jatep, JAT_task_number);
+ 
+                if (global_host || (lFirst(gdil) == lGetElemHostFirst(gdil, JG_qhostname, host, &iterator))) {
+                   is_master_task = true;
+@@ -1572,7 +1574,7 @@
+                   global_host?NULL:host);
+             
+                if (slots > 0) {
+-                  debit_host_consumable(jep, tmp_elem, master_centry_list, slots, is_master_task);
++                  debit_host_consumable(jep, tmp_elem, master_centry_list, slots, is_master_task, ja_task_id);
+                }
+             }
+          }

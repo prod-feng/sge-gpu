@@ -1,0 +1,74 @@
+--- /home/feng/SGE/GE2011.11p1/source/daemons/qmaster/sge_give_jobs.c	2012-05-23 15:04:39.000000000 -0400
++++ source/sge_give_jobs.c	2018-10-12 11:34:36.000000000 -0400
+@@ -992,7 +992,6 @@
+          u_long32 ar_id = lGetUlong(jep, JB_ar);
+          const char *queue_name = lGetString(ep, JG_qname);
+          lListElem *queue = NULL;
+-         
+          if ((queue = cqueue_list_locate_qinstance(master_cqueue_list, queue_name)) == NULL) {
+             ERROR((SGE_EVENT, MSG_CONFIG_CANTFINDQUEUEXREFERENCEDINJOBY_SU,  
+                       queue_name, sge_u32c(lGetUlong(jep, JB_job_number))));
+@@ -1026,9 +1025,8 @@
+                   task_wallclock = MIN(task_wallclock, U_LONG32_MAX);
+                }
+             }
+-
+-            /* debit consumable resources */ 
+-            if (debit_host_consumable(jep, global_host_ep, master_centry_list, tmp_slot, master_task) > 0) {
++            /* debit consumable resources */ /*add jataskid*/
++            if (debit_host_consumable(jep, global_host_ep, master_centry_list, tmp_slot, master_task, jataskid) > 0) {
+                /* this info is not spooled */
+                sge_add_event(0, sgeE_EXECHOST_MOD, 0, 0, 
+                              "global", NULL, NULL, global_host_ep);
+@@ -1037,8 +1035,21 @@
+                lListElem_clear_changed_info(global_host_ep);
+             }
+             host = host_list_locate(master_exechost_list, queue_hostname);
+-            if (debit_host_consumable(jep, host, master_centry_list, tmp_slot, master_task) > 0) {
++            if (debit_host_consumable(jep, host, master_centry_list, tmp_slot, master_task, jataskid) > 0) {
+                /* this info is not spooled */
++               {
++                 const char *myname="ngpus";
++                 /*Process GPU infor*/
++                 lListElem *theGpus = lGetSubStr(host, RUE_name, myname, EH_resource_utilization); /*hard coded*/
++                 if(theGpus == NULL){
++                   DPRINTF(("Error, cannot get NGPUS list\n"));
++                 }
++                 /*u_long32*/ 
++                 const char* gpuid=NULL;
++                 gpuid=qinstance_get_gpu_used(jobid,jataskid,theGpus); /*add support to tasks of array jobs*/
++                 lSetString(ep,JG_cuda_visible_divices, gpuid);
++               }
++
+                sge_add_event(0, sgeE_EXECHOST_MOD, 0, 0, 
+                              queue_hostname, NULL, NULL, host);
+                reporting_create_host_consumable_record(&answer_list, host, jep, now);
+@@ -1048,6 +1059,7 @@
+             qinstance_debit_consumable(queue, jep, master_centry_list, tmp_slot, master_task);
+             reporting_create_queue_consumable_record(&answer_list, host, queue, jep, now);
+             answer_list_output(&answer_list);
++
+             /* this info is not spooled */
+             qinstance_add_event(queue, sgeE_QINSTANCE_MOD);
+             lListElem_clear_changed_info(queue);
+@@ -1606,9 +1618,8 @@
+          pe_slots += tmp_slot;
+          if (incslots) {
+             lListElem *host;
+-
+-            /* undebit consumable resources */ 
+-            if (debit_host_consumable(job, global_host_ep, master_centry_list, -tmp_slot, master_task) > 0) {
++            /* undebit consumable resources */ /*add ja_task_id FZ*/
++            if (debit_host_consumable(job, global_host_ep, master_centry_list, -tmp_slot, master_task, ja_task_id) > 0) {
+                /* this info is not spooled */
+                sge_add_event(0, sgeE_EXECHOST_MOD, 0, 0, 
+                              "global", NULL, NULL, global_host_ep);
+@@ -1617,7 +1628,7 @@
+                lListElem_clear_changed_info(global_host_ep);
+             }
+             host = host_list_locate(master_exechost_list, queue_hostname);
+-            if (debit_host_consumable(job, host, master_centry_list, -tmp_slot, master_task) > 0) {
++            if (debit_host_consumable(job, host, master_centry_list, -tmp_slot, master_task, ja_task_id) > 0) {
+                /* this info is not spooled */
+                sge_add_event(0, sgeE_EXECHOST_MOD, 0, 0, 
+                              queue_hostname, NULL, NULL, host);

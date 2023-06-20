@@ -1,0 +1,31 @@
+--- /home/feng/SGE/GE2011.11p1/source/libs/sgeobj/sge_resource_utilization_RUE_L.h	2012-05-23 15:04:42.000000000 -0400
++++ source/sge_resource_utilization_RUE_L.h	2014-03-12 08:14:00.000000000 -0400
+@@ -106,7 +106,8 @@
+    RUE_utilized_now,
+    RUE_utilized,
+    RUE_utilized_now_nonexclusive,
+-   RUE_utilized_nonexclusive
++   RUE_utilized_nonexclusive,
++   RUE_utilized_now_GRES
+ };
+ 
+ LISTDEF(RUE_Type)
+@@ -116,6 +117,7 @@
+    SGE_LIST(RUE_utilized, RDE_Type, CULL_DEFAULT)
+    SGE_DOUBLE(RUE_utilized_now_nonexclusive, CULL_DEFAULT)
+    SGE_LIST(RUE_utilized_nonexclusive, RDE_Type, CULL_DEFAULT)
++   SGE_LIST(RUE_utilized_now_GRES, VA_Type, CULL_DEFAULT)
+ LISTEND 
+ 
+ NAMEDEF(RUEN)
+@@ -124,8 +126,10 @@
+    NAME("RUE_utilized")
+    NAME("RUE_utilized_now_nonexclusive")
+    NAME("RUE_utilized_nonexclusive")
++   NAME("RUE_utilized_now_GRES")
+ NAMEEND
+ 
++
+ #define RUES sizeof(RUEN)/sizeof(char*)
+ 
+ #ifdef  __cplusplus

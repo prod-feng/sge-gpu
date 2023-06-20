@@ -1,0 +1,26 @@
+--- /home/feng/SGE/GE2011.11p1/source/daemons/qmaster/setup_qmaster.c	2012-05-23 15:04:39.000000000 -0400
++++ source/setup_qmaster.c	2018-10-12 11:34:36.000000000 -0400
+@@ -1338,6 +1338,10 @@
+          bool master_task = true;
+          next_jatep = lNext(jatep);
+ 
++         /*add ja_task_id*/ 
++         u_long32 ja_task_id = lGetUlong(jatep, JAT_task_number);
++
++
+          /* don't look at states - we only trust in 
+             "granted destin. ident. list" */
+ 
+@@ -1360,10 +1364,10 @@
+                /* debit in all layers */
+                lListElem *rqs = NULL;
+                debit_host_consumable(jep, host_list_locate(*object_base[SGE_TYPE_EXECHOST].list,
+-                                     "global"), master_centry_list, slots, master_task);
++                                     "global"), master_centry_list, slots, master_task, ja_task_id);
+                debit_host_consumable(jep, host_list_locate(
+                         *object_base[SGE_TYPE_EXECHOST].list, lGetHost(qep, QU_qhostname)), 
+-                        master_centry_list, slots, master_task);
++                        master_centry_list, slots, master_task, ja_task_id);
+                qinstance_debit_consumable(qep, jep, master_centry_list, slots, master_task);
+                for_each (rqs, master_rqs_list) {
+                   rqs_debit_consumable(rqs, jep, gdi, lGetString(jatep, JAT_granted_pe), master_centry_list, 

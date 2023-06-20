@@ -1,0 +1,47 @@
+--- /home/feng/SGE/GE2011.11p1/source/daemons/qmaster/sge_follow.c	2012-05-23 15:04:39.000000000 -0400
++++ source/sge_follow.c	2014-11-26 08:38:22.000000000 -0500
+@@ -415,13 +415,14 @@
+                }
+             }
+          }
+-
+          /* ------------------------------------------------ 
+           *  build up granted_destin_identifier_list (gdil)
+           */
+          gdil_ep = lAddElemStr(&gdil, JG_qname, q_name, JG_Type); /* free me on error! */
+          lSetHost(gdil_ep, JG_qhostname, lGetHost(qep, QU_qhostname));
+          lSetUlong(gdil_ep, JG_slots, q_slots);
++
++
+          
+          /* ------------------------------------------------
+           *  tag each gdil entry of slave exec host
+@@ -461,13 +462,17 @@
+          /* in case of a pe job update free_slots on the pe */
+          if (pe) { 
+             pe_slots += q_slots;
+-         }   
++         }  
+       }
+          
+       /* fill in master_queue */
+       lSetString(jatp, JAT_master_queue, lGetString(master_qep, QU_full_name));
+       lSetList(jatp, JAT_granted_destin_identifier_list, gdil);
+ 
++      /*job is now sent and goes into transfering state, from here, to store the info of GPUs*/
++      sge_commit_job(ctx, jep, jatp, NULL, COMMIT_ST_SENT, COMMIT_DEFAULT, monitor);
++
++
+       if (sge_give_job(ctx, jep, jatp, master_qep, pe, master_host, monitor)) {
+ 
+          /* setting of queues in state unheard is done by sge_give_job() */
+@@ -485,7 +490,8 @@
+ 
+       /* job is now sent and goes into transfering state */
+       /* mode == COMMIT_ST_SENT -> really accept when execd acks */
+-      sge_commit_job(ctx, jep, jatp, NULL, COMMIT_ST_SENT, COMMIT_DEFAULT, monitor);
++      //sge_commit_job(ctx, jep, jatp, NULL, COMMIT_ST_SENT, COMMIT_DEFAULT, monitor);
++
+ 
+       /* now send events and spool the job */
+       {

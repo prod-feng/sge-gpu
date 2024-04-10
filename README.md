@@ -1,5 +1,19 @@
 # sge-gpu
 
+Update 04/10/2024
+Improve support fractioned -l ngpus=0.5. Useful for multithreading GPU jobs which needs multiple CPU cores, but 1 or several GPUs.
+
+-pe openmp 10  # requests 10 cpu cores
+-l ngpus=0.2     # so here 10X0.2=2 GPUs for this job on the same node.
+
+Added protection for MT for multiple worker threads. Or set #SGE_ROOT/default/common/bootstrap to be:
+
+listener_threads        1
+worker_threads         1
+
+NO Guarantee!
+=====================
+
 Update: Oct., 2018 
 
 Add patched_files_ge2011.11.p1.0.1.tar.gz .

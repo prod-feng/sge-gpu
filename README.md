@@ -1,5 +1,45 @@
 # sge-gpu
+To set a hibrid CPU and GPU cluster, simultaneously run CPU jobs and GPUs jobs on the same node, it is better to force to reserve 1 CPU core per 1 GPU.
+The way I do is:(suppose nodeA has 40CPU core, 2 GPUs)
 
+1. Define a "rcpus" comsumable:
+
+```
+qconf -sc|grep rcpu
+rcpus               rcpus      INT         <=    YES         YES        10       0
+```
+
+2. Set the value of the "rcpus" as:
+```
+40 cores - 2 cores(for GPU) =38 X 10 =380
+
+rcpus=380+2 =382
+
+```
+3. Update the node
+```
+qconf -se nodeA
+complex_values        slots=40,rcpus=382,ngpus=2
+
+```
+4. Name CPU queues as "cpu*", and GPU queues as "gpu*'
+5. Add JSV to SGE conf
+```
+qconf -sconf
+
+...
+jsv_url                      /somewhere/mygpujsv.pl
+...
+```
+In this "mygpujsv.pl" file, add the codes:
+```
+        if ( $key=~/cpu/) {
+          jsv_sub_add_param('l_hard', 'rcpus',10);
+        }
+```
+In this way,CPU jobs will debit 10 "rcpus", which can only use 38 cores; while, GPU jobs will debit 1. So reservs 2 CPU cores for GPU jobs.
+
+====================================
 Update 04/10/2024
 Improve support fractioned -l ngpus=0.5. Useful for multithreading GPU jobs which needs multiple CPU cores, but 1 or several GPUs.
 

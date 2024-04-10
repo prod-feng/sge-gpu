@@ -49,7 +49,9 @@ In this "mygpujsv.pl" file, add the codes:
 In this way, CPU jobs will debit 10 "rcpus", which can only use 38 cores; while, GPU jobs will debit 1 "rcpus". So reservs 2 CPU cores for GPU jobs.
 
 ====================================
+
 Update 04/10/2024
+
 Improve support fractioned -l ngpus=0.5. Useful for multithreading GPU jobs which needs multiple CPU cores, but 1 or several GPUs.
 
 ```

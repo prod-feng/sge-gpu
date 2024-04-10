@@ -1,0 +1,254 @@
+--- ../GE2011.11p1/source/libs/sgeobj/sge_qinstance.c	2012-05-23 15:04:43.000000000 -0400
++++ libs/sgeobj/sge_qinstance.c	2024-04-10 10:28:44.642801761 -0400
+@@ -732,7 +732,7 @@
+    return rc_debit_consumable(jep, qep, centry_list, slots,
+                               QU_consumable_config_list, 
+                               QU_resource_utilization,
+-                              lGetString(qep, QU_qname), is_master_task);
++                              lGetString(qep, QU_qname), is_master_task, 0); /*add ja_task_id=0 for all queues. Handle the tasks in host debitting*/
+ }
+ 
+ /****** sgeobj/qinstance/qinstance_message_add() *****************************
+@@ -1011,13 +1011,16 @@
+ int 
+ rc_debit_consumable(lListElem *jep, lListElem *ep, lList *centry_list, 
+                     int slots, int config_nm, int actual_nm, 
+-                    const char *obj_name, bool is_master_task) 
++                    const char *obj_name, bool is_master_task, u_long32 ja_task_id) 
+ {
++   /*add u_long32 ja_task_id*/
+    lListElem *cr, *cr_config, *dcep;
+    double dval;
+    const char *name;
+    int mods = 0;
+ 
++   /*lListElem *gres;*/
++
+    DENTER(TOP_LAYER, "rc_debit_consumable");
+ 
+    if (!ep) {
+@@ -1058,15 +1061,24 @@
+          cr = lAddSubStr(ep, RUE_name, name, actual_nm, RUE_Type);
+          /* RUE_utilized_now is implicitly set to zero */
+       }
+-   
++
++  
++ 
+       if (jep) {
+          bool tmp_ret = job_get_contribution(jep, NULL, name, &dval, dcep);
+ 
+          if (tmp_ret && dval != 0.0) {
+-            DPRINTF(("debiting %f of %s on %s %s for %d slots\n", dval, name,
++            DPRINTF(("debiting %f of %s on %s %s for %d slots JOB:%d \n", dval, name,
+                      (config_nm==QU_consumable_config_list)?"queue":"host",
+-                     obj_name, debit_slots));
++                     obj_name, debit_slots,lGetUlong(jep, JB_job_number)));
+             lAddDouble(cr, RUE_utilized_now, debit_slots * dval);
++            /*Deal with ngpus, on host*/
++            if(!strcmp(name , "ngpus") && abs(debit_slots) > 0 && config_nm==EH_consumable_config_list) {
++                 qinstance_set_gpu_used(jep, cr, cr_config, debit_slots * dval, ja_task_id);
++#if 0
++            DPRINTF(("debiting GPUs:%d %x:: %d\n",lGetUlong(jep, JB_job_number),*jep,JB_job_number));
++#endif
++            }
+             mods++;
+          } else if (lGetUlong(dcep, CE_relop) == CMPLXEXCL_OP) {
+             dval = 1.0;
+@@ -1319,3 +1331,196 @@
+       qinstance_message_trash_all_of_type_X(qinstance, type);
+    }
+ }
++
++/****** sge_qinstance/qinstance_set_gpu_used() ************************************
++ * *  NAME
++ * *     qinstance_set_gpv_used() -- set/unset qinstance into state
++ * *
++ * *  SYNOPSIS
++ * *
++ * *  FUNCTION
++ * *
++ * *  INPUTS
++ *     lListElem *jep       - The job (JB_Type) defining which resources and how
++ *     *                            much of them need to be (un)debited
++ * *     lListElem *cr -      - RUE_Type
++ * *     lListElem *cr_config - CE_Type
++ * *
++ * *  NOTES
++ * *     MT-NOTE: qinstance_set_error() is MT safe 
++ * *******************************************************************************/
++void
++qinstance_set_gpu_used(lListElem *jep, lListElem *cr, lListElem *cr_config, int debit_slots, u_long32 ja_task_id)
++{
++    DENTER(QINSTANCE_LAYER, "qinstance_set_gpu_used");
++    int gfoundp=0; 
++    int gfoundm=0;
++    //int nslots=debit_slots;
++    //double total=0; 
++    //total = lGetDouble(cr_config, CE_doubleval);
++
++    //if(debit_slots < 0){ /*undebiting*/
++    //  nslots=-1 * nslots;    
++    //}
++
++    //int ngpu= (int)total;//debit_slots * dval;
++    //if(ngpu>8) ngpu=8; /*hard coded, <10 gpu*/
++
++    //get the total number of installed GPUs on this node.
++    int maxgpu= (int) lGetDouble(cr_config, CE_doubleval);
++
++    //get the # of gpus to debit.
++    //Here it supports fractional # of gpus for 1 process, meaning multiple CPUs for a single GPU, etc.
++    //For example, for multithreading CPU job, using 10 CPU cores, and 1 GPU: -l ngpus=0.1
++    //Here 10 X 0.1 =1 (GPU)
++    //Check the fact at the caller: debit_slots * dval passed here.
++    //
++    int nslots=abs(debit_slots);
++
++    long job_id=(long)lGetUlong(jep, JB_job_number);
++    fprintf(stderr, "Process  GPU job \n");
++    //Check to see if we have the GPU data bank in memeory?
++    lList *iLgpu = lGetList(cr, RUE_utilized_now_GRES);
++    if (iLgpu == NULL) {
++         DPRINTF(("Create GPU list now\n"));
++         iLgpu=lCreateList("gpu_util", VA_Type);
++         if (iLgpu == NULL){
++              DPRINTF(("Can not create GPU list\n"));
++         }
++    }
++
++    const char cgtemp[255],ccjobid[255],cjobinfo[255];
++    const char *cjobid=ccjobid;
++    const char * gtemp=cgtemp;
++    const char * jobinfo=cjobinfo;
++    #
++    sprintf (cjobid, "%ld.%ld", job_id,(long)ja_task_id);
++    sprintf (jobinfo, "jobmask", job_id,(long)ja_task_id);
++    /*Check if this job has registered already*/
++    gtemp = (char*)var_list_get_string(iLgpu, (const char *)cjobid); 
++    if(debit_slots > 0) { // debit gpus
++      if(gtemp == NULL){
++          fprintf(stderr, "Mark GPU job %s. Avoid repeated debiting by multiple worked threads. \n",cjobid);
++          var_list_set_string(&iLgpu, cjobid, jobinfo);
++      } else {
++          fprintf(stderr, "Found GPU job %s gtemp %s. Already debit, exit. \n",cjobid,gtemp);
++          return; //Okey, return now. another worker thread should have delt with it already
++     }
++    } else { //undebit gpus
++        if(gtemp != NULL){ 
++           fprintf(stderr, "Start undebiting GPU job %s gtemp %s \n",cjobid,gtemp);
++           var_list_delete_string(&iLgpu, cjobid);
++        } else {
++          fprintf(stderr, "No GPU job found: %s gtemp %s. Exit. \n",cjobid,gtemp);
++          return;
++        }
++    }
++
++    #
++    const char cgdev[255],cgval[255];
++    const char * gdev=cgdev;
++    const char * gval=cgval;
++    int ig;
++
++    for(ig = 0; ig < maxgpu; ig++){ /*GPU 1,2 3,...,9*/
++         sprintf (gdev, "gpu%d", ig);
++         sprintf (gval, "%ld.%ld;%1d", job_id,(long)ja_task_id,  ig);
++         fprintf(stderr, "Check GPU:job:%ld.%ld;gpu:%1d:debit:%d\n", job_id, (long)ja_task_id, ig, debit_slots);
++         gtemp = (char*)var_list_get_string(iLgpu, (const char *)gdev);
++         fprintf(stderr, "Check gtemp %s \n",gtemp);
++         if(gtemp == NULL || strlen(gtemp)==0){
++              DPRINTF(("Create GPU list items\n"));
++              if(debit_slots > 0 && gfoundp < debit_slots) {
++                 var_list_set_string(&iLgpu, gdev, gval); /*Got this gpu*/
++                 gfoundp++;
++                 DPRINTF(("debiting GPUS %d  for %d slots %s : %s ;;%s  gfoundp=%d\n", ig, debit_slots,gdev,gval,gtemp,gfoundp));
++              } 
++
++             if(gfoundp >= nslots) break; //update here for nslots, fix the bug of missing clear the GPU list after the job is done. 
++         }else {
++            if(debit_slots < 0 && gfoundm < nslots) { /*how about =0??? undebiting gpu now*/
++               struct saved_vars_s *context1;
++               const char *token_1 = NULL;
++               context1 = NULL;
++               token_1 = sge_strtok_r(gtemp, ";", &context1);
++               //get the jobid.jaid of this GPU., compare the stored job id to the current job id.
++               const char* gjobid= (char *)token_1;
++               if( !strcmp(gjobid, cjobid)) { /*it matches, undebit it */
++                   var_list_set_string(&iLgpu, gdev, "");/*need to check all items?*/
++                   gfoundm++;
++                   DPRINTF(("undebiting GPUS %d  for %d slots of  %s \n", ig, debit_slots,gtemp));
++               }
++               sge_free_saved_vars(context1);
++               if(gfoundm >= nslots) break;
++            }
++        }/*if*/ 
++    }/*for ig<maxgpu*/
++
++
++    if(lSetList(cr, RUE_utilized_now_GRES, iLgpu) !=0 ) {
++        DPRINTF(("Failed to set the GPU list\n"));
++    }
++
++}
++
++/****** sge_qinstance/qinstance_get_gpu_used() ************************************
++ * *  NAME
++ * *     qinstance_get_gpv_used() -- set/unset qinstance into state
++ * *
++ * *  SYNOPSIS
++ * *
++ * *  FUNCTION
++ * *
++ * *  INPUTS
++ *     lListElem *jep       - The job (JB_Type) defining which resources and how
++ *     *                            much of them need to be (un)debited
++ * *     lListElem *cr -      - RUE_Type
++ * *     lListElem *cr_config - CE_Type
++ * *
++ * *  NOTES
++ * *     MT-NOTE: qinstance_set_error() is MT safe 
++ * *******************************************************************************/
++const char *
++qinstance_get_gpu_used(u_long32 job_id, u_long32 jataskid, const lListElem *cr)
++{
++/*
++ add jataskid support. FZ.
++ */
++  DENTER(QINSTANCE_LAYER, "qinstance_get_gpu_used");
++  lListElem *rung;
++  const char* ret=NULL;
++
++  char cg_set[255];
++  char *g_set=cg_set;
++  *cg_set='\0';
++
++  fprintf(stderr, "READ GPU used JOID=%d   utilized=%f\n", job_id, lGetDouble(cr,RUE_utilized_now));
++
++  if(lGetList(cr, RUE_utilized_now_GRES)==NULL) fprintf(stderr, "No GPU List found!\n");
++  for_each (rung,lGetList(cr, RUE_utilized_now_GRES)) {
++       char cgtemp[255], ccjobid[255];
++       char *gtemp=cgtemp;
++       char *cjobid=ccjobid;
++       sprintf (cjobid, "%ld.%ld", job_id,(long)jataskid);
++       gtemp = (char*) lGetString(rung, VA_value);
++       if(gtemp == NULL || strlen(gtemp)==0 || !strcmp(gtemp,"jobmask")){
++       }else {
++          struct saved_vars_s *context1;
++          const char *token_1 = NULL;
++                  
++          context1 = NULL;
++          token_1 = sge_strtok_r(gtemp, ";", &context1);
++          char* gjobid= (char*)token_1;
++          token_1 = sge_strtok_r(NULL, ";", &context1);
++          char *sig=(char*)token_1;
++	  if( !strcmp(gjobid,cjobid) && gjobid!=NULL && strlen(gjobid)!=0){
++             strcat(g_set,",");
++             strcat(g_set,sig);
++	  }
++          sge_free_saved_vars(context1);
++       }
++  }/*for_each*/
++  ret=(const char*)&cg_set[1];
++  fprintf(stderr, "Found GPUs for jobid=%ld.%ld, gpu:%s\n",job_id,jataskid,ret);
++  return ret;
++}

@@ -69,9 +69,11 @@ worker_threads         1
 
 NO Guarantee!
 
-======================================
+
 
 And then restart the sgemaster service. The already running GPU jobs need to be re-submitted(the GPU info in SGE is not spooled).
+
+======================================
 
 Update: Oct., 2018 
 

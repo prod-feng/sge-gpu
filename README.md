@@ -1,5 +1,8 @@
 # sge-gpu
-To set a hybrid CPU and GPU cluster, simultaneously run CPU jobs and GPUs jobs on the same node, it is possible to reserve 1 CPU core per 1 GPU.
+### (For patched Son of GridEngine, plese check here: https://github.com/prod-feng/songe)
+
+### To set a hybrid CPU and GPU cluster
+Simultaneously run CPU jobs and GPUs jobs on the same node, one would better to reserve 1 CPU core per 1 GPU.
 The way I do is:(suppose nodeA has 40CPU core, 2 GPUs) (there should be other ways)
 
 1. Define a "rcpus" comsumable:

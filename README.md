@@ -53,9 +53,9 @@ In this way, CPU jobs will debit 10 "rcpus", which can only use 38 cores; while,
 
 ====================================
 
-Update 04/10/2024
+### Update 04/10/2024
 
-Improve support fractioned -l ngpus=0.5. Useful for multithreading GPU jobs which needs multiple CPU cores, but 1 or several GPUs.
+#### Improve support fractioned -l ngpus=0.5. Useful for multithreading GPU jobs which needs multiple CPU cores, but 1 or several GPUs.
 
 ```
 -pe openmp 10    # requests 10 cpu cores
@@ -63,7 +63,7 @@ Improve support fractioned -l ngpus=0.5. Useful for multithreading GPU jobs whic
 -l ngpus=0.2     # so here 10X0.2=2 GPUs for this job on the same node.
 ```
 
-Added protection for MT for multiple worker threads. Or set #SGE_ROOT/default/common/bootstrap to be:
+#### Added protection for MT for multiple worker threads. Or set #SGE_ROOT/default/common/bootstrap to be:
 
 ```
 listener_threads       1
@@ -71,7 +71,7 @@ worker_threads         1
 ```
 
 
-And then restart the sgemaster service. The already running GPU jobs need to be re-submitted(the GPU info in SGE is not spooled).
+#### And then restart the sgemaster service. The already running GPU jobs need to be re-submitted(the GPU info in SGE is not spooled).
 
 
 NO Guarantee!
